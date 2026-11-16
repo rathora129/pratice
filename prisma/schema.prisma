@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+
+  @@index([sortOrder])
+}
+
+model Product {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  name           String
+  slug           String    @unique
+  categoryId     String
+  category       Category  @relation(fields: [categoryId], references: [id])
+  description    String
+  application    String?
+  status         String    @default("draft")
+  featured       Boolean   @default(false)
+  seoTitle       String?
+  seoDescription String?
+  variants       Variant[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([categoryId, status])
+  @@index([featured])
+}
+
+model Variant {
+  id              String   @id @default(cuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku             String   @unique
+  name            String
+  widthMm         Int?
+  heightMm        Int?
+  gussetMm        Int?
+  thicknessMicron Int?
+  material        String?
+  printingMethod  String?
+  colourCount     Int?
+  lamination      String?
+  finish          String?
+  closure         String?
+  moq             Int?
+  uom             String   @default("Piece")
+  pricePaise      Int?
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([productId, status])
+}
+
+model Lead {
+  id              String         @id @default(cuid())
+  leadNo          String         @unique
+  company         String
+  contactName     String
+  email           String?
+  phone           String
+  productInterest String?
+  quantity        String?
+  message         String?
+  source          String         @default("website")
+  status          String         @default("new")
+  lostReason      String?
+  customerId      String?
+  customer        Customer?      @relation(fields: [customerId], references: [id])
+  assignedToId    String?
+  assignedTo      User?          @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  activities      LeadActivity[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status, createdAt])
+  @@index([assignedToId])
+  @@index([customerId])
+}
+
+model User {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         String
+  status       String         @default("active")
+  assignedLeads Lead[]        @relation("LeadAssignee")
+  activities   LeadActivity[]
+  auditLogs    AuditLog[]
+  ownedCustomers Customer[]   @relation("CustomerOwner")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([role, status])
+}
+
+model Customer {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  company           String
+  contactName       String
+  email             String?
+  phone             String
+  gstin             String?
+  billingAddress    String?
+  shippingAddress   String?
+  city              String?
+  state             String?
+  pincode           String?
+  paymentTerms      String?
+  creditLimitPaise  Int?
+  status            String   @default("active")
+  ownerId           String?
+  owner             User?    @relation("CustomerOwner", fields: [ownerId], references: [id])
+  leads             Lead[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status, company])
+  @@index([ownerId])
+}
+
+model LeadActivity {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type        String   @default("note")
+  note        String
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorName  String
+  actorRole  String
+  action     String
+  entityType String
+  entityId   String?
+  summary    String
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model ContentBlock {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
