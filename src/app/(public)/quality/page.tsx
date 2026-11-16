@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     "How Stark Packmate approaches quality control: incoming checks, in-process inspection, final inspection and dispatch release.",
 };
 
+export const dynamic = "force-dynamic";
+
 const gates = [
   {
     step: "01",

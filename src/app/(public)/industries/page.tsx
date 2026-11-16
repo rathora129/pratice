@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     "Packaging formats for food and FMCG, spices, dry fruits, wellness, personal care, beverages and e-commerce brands.",
 };
 
+export const dynamic = "force-dynamic";
+
 const industries = [
   {
     name: "Food & snacks",

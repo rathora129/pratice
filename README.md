@@ -8,11 +8,11 @@ Phase 1 (discovery and architecture) deliverables plus **runnable Phase 2 and Ph
 
 ## Run it locally
 
-Requirements: Node.js 20+ (tested on 24). No Docker, no external database.
+Requirements: Node.js 20+ (tested on 24) and a PostgreSQL connection configured as `DATABASE_URL`.
 
 ```bash
 npm install          # install dependencies
-npm run setup        # prisma generate + db push + seed (catalogue, content, demo users)
+npm run setup        # initialize the local database and seed demo data
 npm run dev          # start at http://localhost:3000
 ```
 
@@ -37,18 +37,33 @@ Other commands:
 | `npm run typecheck` | TypeScript strict check |
 | `npm run build` | Production build |
 | `npm run start` | Serve the production build |
-| `npm run db:studio` | Browse the SQLite database |
-| `npm run db:push` / `db:seed` | Re-apply schema / re-seed reference data |
+| `npm run db:studio` | Browse the database configured by `DATABASE_URL` |
+| `npm run db:migrate:deploy` | Apply committed migrations to the configured database |
+| `npm run db:seed` | Seed reference/demo data (development only) |
 
-`.env` is committed with development-only values:
+Set these variables in `.env` for local development:
 
 ```
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
 DEMO_PASSWORD="Packmate@2026"
 ADMIN_SESSION_SECRET="dev-only-change-this-secret-before-production"
 ```
 
 Change the demo password and session secret before exposing the app. Passwords are stored as scrypt hashes; sessions are HMAC-signed, httpOnly cookies with an 8-hour lifetime.
+
+### PostgreSQL deployments and migrations
+
+The Prisma schema uses PostgreSQL. Prisma CLI and Client are both locked to 6.19.3; this version reads `DATABASE_URL` from the process environment or `.env` and does not require `prisma.config.ts`. The production build generates the Prisma Client before running Next.js.
+
+The initial PostgreSQL migration is in `prisma/migrations`. After confirming the target database state and backing it up, apply pending migrations with:
+
+```bash
+npm run db:migrate:deploy
+```
+
+Run this explicitly against the existing production connection only after checking its tables and migration history. The initial migration creates the schema from the Prisma models and is intended for an empty database; do not run it blindly if the target already contains application tables or records. If it is partially populated, inspect and compare its schema first, then prepare a reviewed additive migration or baseline plan. Do not use `db push`, `migrate reset`, or the local seed command against production.
+
+The tracked `prisma/dev.db` is a separate SQLite database and contains existing data. It is not used by the PostgreSQL Prisma schema. Keep it intact; if its data is needed in PostgreSQL, export and transfer it with IDs and relations preserved only after checking the target for duplicates and taking a backup. No transfer or production database changes are run automatically by the build.
 
 ### What the preview covers
 
